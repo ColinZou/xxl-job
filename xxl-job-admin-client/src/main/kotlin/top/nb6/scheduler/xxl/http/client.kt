@@ -1,6 +1,7 @@
 package top.nb6.scheduler.xxl.http
 
 import com.google.gson.Gson
+import com.xxl.job.core.biz.exceptions.ApiInvokeException
 import com.xxl.job.core.biz.exceptions.LoginFailedException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -26,15 +27,20 @@ class Constants {
         const val CONTENT_TYPE_JSON = "application/json"
         const val CONTENT_TYPE_URL_FORM_ENCODED = "application/x-www-form-urlencoded"
         val UTF_8: Charset = StandardCharsets.UTF_8
+        const val JSON_START_TAG = "{"
+        const val STATUS_CODE_OK = 200L
+        const val MAX_RETRY = 5
     }
 }
+
+open class CommonAdminApiResponse(val code: Long, val msg: String? = null)
 
 class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties) {
     private val httpClient: HttpClient
 
     companion object {
-        val LOGIN_LOCK = ReentrantLock(false)
-        val log: Logger = LoggerFactory.getLogger(XxlAdminHttpClient::class.java)
+        private val LOGIN_LOCK = ReentrantLock(false)
+        private val log: Logger = LoggerFactory.getLogger(XxlAdminHttpClient::class.java)
     }
 
     init {
@@ -48,13 +54,25 @@ class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties
     }
 
     private fun <T> needLogin(response: HttpResponse<T>): Boolean {
-        val location = response.headers().map().entries.first {
+        val location = response.headers().map().entries.firstOrNull() {
             it.key.equals(
                 Constants.HEADER_LOCATION,
                 true
             )
-        }.value.firstOrNull()
+        }?.value?.firstOrNull()
         return location?.endsWith(Constants.URI_LOGIN, true) ?: false
+    }
+
+    /**
+     * 检查某个响应是否为错误响应
+     */
+    fun isErrorJsonResponse(jsonContent: String): Pair<Boolean, String?> {
+        return if (jsonContent.startsWith(Constants.JSON_START_TAG)) {
+            val responseObj = Gson().fromJson(jsonContent, CommonAdminApiResponse::class.java)
+            return Pair(responseObj.code == Constants.STATUS_CODE_OK, responseObj.msg)
+        } else {
+            Pair(false, "Not a json response")
+        }
     }
 
     @Throws(LoginFailedException::class)
@@ -75,7 +93,7 @@ class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties
                 autoLogin = false
             )
             val responseBody = response.body()
-            if (responseBody.isEmpty() || !responseBody.startsWith("{")) {
+            if (responseBody.isEmpty() || !responseBody.startsWith(Constants.JSON_START_TAG)) {
                 log.error(
                     "Failed to login xxl-job admin site, loginName=$loginName " +
                             "password length=${loginPassword.length}: $responseBody"
@@ -91,9 +109,9 @@ class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties
             val data = Gson().fromJson<HashMap<String, Any>>(responseBody, java.util.HashMap::class.java)
             val codeKey = "code"
             val code = if (data.containsKey(codeKey)) {
-                (data[codeKey] as Double).toInt()
-            } else 0
-            return code == 200
+                (data[codeKey] as Double).toLong()
+            } else 0L
+            return code == Constants.STATUS_CODE_OK
         } finally {
             LOGIN_LOCK.unlock()
         }
@@ -102,13 +120,28 @@ class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties
     @Throws(LoginFailedException::class)
     fun <T> request(
         uri: String,
-        responseBodyHandler: HttpResponse.BodyHandler<T>?,
+        responseBodyHandler: HttpResponse.BodyHandler<T>,
         requestBodyPublisher: HttpRequest.BodyPublisher,
         method: String = "GET",
         timeout: Duration = Duration.ofSeconds(10),
         contentType: String = "application/json",
         autoLogin: Boolean = true
     ): HttpResponse<T> {
+        return requestInternal(uri, responseBodyHandler, requestBodyPublisher, method, timeout, contentType, autoLogin)
+    }
+
+    private fun <T> requestInternal(
+        uri: String,
+        responseBodyHandler: HttpResponse.BodyHandler<T>?,
+        requestBodyPublisher: HttpRequest.BodyPublisher,
+        method: String = "GET",
+        timeout: Duration = Duration.ofSeconds(10),
+        contentType: String = "application/json",
+        autoLogin: Boolean = true, nTimes: Int = 1
+    ): HttpResponse<T> {
+        if (nTimes > Constants.MAX_RETRY) {
+            throw ApiInvokeException("Exceed maximum retried times ${Constants.MAX_RETRY}")
+        }
         val finalUri = URI(UrlUtils.append(adminSiteProperties.apiPrefix, uri))
         var requestBuilder = HttpRequest.newBuilder()
             .uri(finalUri)
@@ -121,7 +154,16 @@ class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties
         val response = httpClient.send(request, responseBodyHandler)
         return if (autoLogin && needLogin(response)) {
             if (doLogin()) {
-                return request(uri, responseBodyHandler, requestBodyPublisher, method, timeout, contentType)
+                return requestInternal(
+                    uri,
+                    responseBodyHandler,
+                    requestBodyPublisher,
+                    method,
+                    timeout,
+                    contentType,
+                    autoLogin,
+                    nTimes + 1
+                )
             } else {
                 throw LoginFailedException()
             }

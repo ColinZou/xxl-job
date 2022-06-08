@@ -5,11 +5,13 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
 internal class XxlAdminHttpClientTest {
-    private val adminSiteConfigProps = XxlAdminSiteProperties(
-        "http://localhost:8080/xxl-job-admin",
-        "admin", "123456"
-    )
-    private val client: XxlAdminHttpClient = XxlAdminHttpClient(adminSiteConfigProps)
+    companion object {
+        val adminSiteConfigProps = XxlAdminSiteProperties(
+            "http://localhost:8080/xxl-job-admin",
+            "admin", "123456"
+        )
+        val client: XxlAdminHttpClient = XxlAdminHttpClient(adminSiteConfigProps)
+    }
 
     @org.junit.jupiter.api.Test
     fun testDoLogin() {

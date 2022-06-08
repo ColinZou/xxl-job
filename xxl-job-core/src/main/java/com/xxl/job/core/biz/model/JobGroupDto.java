@@ -57,4 +57,17 @@ public class JobGroupDto {
     public void setUpdateTime(Date updateTime) {
         this.updateTime = updateTime;
     }
+
+    public JobGroupDto() {
+    }
+
+    public JobGroupDto(int id, String appname, String title, int addressType,
+                       String addressList, Date updateTime) {
+        this.id = id;
+        this.appname = appname;
+        this.title = title;
+        this.addressType = addressType;
+        this.addressList = addressList;
+        this.updateTime = updateTime;
+    }
 }

@@ -1,8 +1,12 @@
 package top.nb6.scheduler.xxl.utils
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.*
+
 class UrlUtils {
     companion object {
-        const val SLASH: String = "/"
+        private const val SLASH: String = "/"
         fun append(vararg parts: String): String {
             return parts.reduce { first, second ->
                 val one = if (first.endsWith(SLASH)) {
@@ -21,4 +25,17 @@ class UrlUtils {
     }
 }
 
- 
+class FormUtils {
+    companion object {
+        private const val FIELD_DELIMITER = "&"
+        fun build(params: Map<String, String>): String {
+            return params.entries
+                .filter { Objects.nonNull(it.value) }
+                .map {
+                    "${it.key}=${URLEncoder.encode(it.value, StandardCharsets.UTF_8)}"
+                }.reduce { a, b ->
+                    "$a$FIELD_DELIMITER$b"
+                }
+        }
+    }
+}

@@ -1,7 +1,9 @@
 package com.xxl.job.core.biz.model;
 
+import com.xxl.job.core.biz.model.types.EnumExecutorBlockStrategy;
 import com.xxl.job.core.biz.model.types.EnumExecutorRoutingStrategy;
 import com.xxl.job.core.biz.model.types.EnumGlueType;
+import com.xxl.job.core.biz.model.types.EnumMissingFireStrategy;
 import com.xxl.job.core.biz.model.types.EnumScheduleType;
 
 import java.util.Date;
@@ -20,12 +22,12 @@ public class JobInfoDto {
 
     private EnumScheduleType scheduleType;            // 调度类型
     private String scheduleConf;            // 调度配置，值含义取决于调度类型
-    private String misfireStrategy;            // 调度过期策略
+    private EnumMissingFireStrategy misfireStrategy;            // 调度过期策略
 
-    private String executorRouteStrategy;    // 执行器路由策略
+    private EnumExecutorRoutingStrategy executorRouteStrategy;    // 执行器路由策略
     private String executorHandler;            // 执行器，任务Handler名称
     private String executorParam;            // 执行器，任务参数
-    private EnumExecutorRoutingStrategy executorBlockStrategy;    // 阻塞处理策略
+    private EnumExecutorBlockStrategy executorBlockStrategy;    // 阻塞处理策略
     private int executorTimeout;            // 任务执行超时时间，单位秒
     private int executorFailRetryCount;        // 失败重试次数
 
@@ -112,19 +114,19 @@ public class JobInfoDto {
         this.scheduleConf = scheduleConf;
     }
 
-    public String getMisfireStrategy() {
+    public EnumMissingFireStrategy getMisfireStrategy() {
         return misfireStrategy;
     }
 
-    public void setMisfireStrategy(String misfireStrategy) {
+    public void setMisfireStrategy(EnumMissingFireStrategy misfireStrategy) {
         this.misfireStrategy = misfireStrategy;
     }
 
-    public String getExecutorRouteStrategy() {
+    public EnumExecutorRoutingStrategy getExecutorRouteStrategy() {
         return executorRouteStrategy;
     }
 
-    public void setExecutorRouteStrategy(String executorRouteStrategy) {
+    public void setExecutorRouteStrategy(EnumExecutorRoutingStrategy executorRouteStrategy) {
         this.executorRouteStrategy = executorRouteStrategy;
     }
 
@@ -144,12 +146,12 @@ public class JobInfoDto {
         this.executorParam = executorParam;
     }
 
-    public EnumExecutorRoutingStrategy getExecutorBlockStrategy() {
+    public EnumExecutorBlockStrategy getExecutorBlockStrategy() {
         return executorBlockStrategy;
     }
 
     public void setExecutorBlockStrategy(
-        EnumExecutorRoutingStrategy executorBlockStrategy) {
+        EnumExecutorBlockStrategy executorBlockStrategy) {
         this.executorBlockStrategy = executorBlockStrategy;
     }
 
@@ -231,5 +233,46 @@ public class JobInfoDto {
 
     public void setTriggerNextTime(long triggerNextTime) {
         this.triggerNextTime = triggerNextTime;
+    }
+
+    public JobInfoDto(int id, int jobGroup, String jobDesc, Date addTime, Date updateTime,
+                      String author, String alarmEmail,
+                      EnumScheduleType scheduleType, String scheduleConf,
+                      EnumMissingFireStrategy misfireStrategy,
+                      EnumExecutorRoutingStrategy executorRouteStrategy,
+                      String executorHandler, String executorParam,
+                      EnumExecutorBlockStrategy executorBlockStrategy, int executorTimeout,
+                      int executorFailRetryCount,
+                      EnumGlueType glueType, String glueSource, String glueRemark,
+                      Date glueUpdatetime, String childJobId, int triggerStatus,
+                      long triggerLastTime,
+                      long triggerNextTime) {
+        this.id = id;
+        this.jobGroup = jobGroup;
+        this.jobDesc = jobDesc;
+        this.addTime = addTime;
+        this.updateTime = updateTime;
+        this.author = author;
+        this.alarmEmail = alarmEmail;
+        this.scheduleType = scheduleType;
+        this.scheduleConf = scheduleConf;
+        this.misfireStrategy = misfireStrategy;
+        this.executorRouteStrategy = executorRouteStrategy;
+        this.executorHandler = executorHandler;
+        this.executorParam = executorParam;
+        this.executorBlockStrategy = executorBlockStrategy;
+        this.executorTimeout = executorTimeout;
+        this.executorFailRetryCount = executorFailRetryCount;
+        this.glueType = glueType;
+        this.glueSource = glueSource;
+        this.glueRemark = glueRemark;
+        this.glueUpdatetime = glueUpdatetime;
+        this.childJobId = childJobId;
+        this.triggerStatus = triggerStatus;
+        this.triggerLastTime = triggerLastTime;
+        this.triggerNextTime = triggerNextTime;
+    }
+
+    public JobInfoDto() {
     }
 }
