@@ -20,6 +20,7 @@ import java.net.http.HttpResponse
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
+import java.util.concurrent.Flow
 
 fun validateJsonResponse(client: XxlAdminHttpClient, jsonContent: String) {
     val responseCheck = client.isErrorJsonResponse(jsonContent)

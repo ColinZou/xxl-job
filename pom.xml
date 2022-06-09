@@ -44,6 +44,8 @@
         <maven-javadoc-plugin.version>3.4.0</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
         <postgresql-driver.version>42.3.6</postgresql-driver.version>
+
+        <projectreactor.version>3.4.18</projectreactor.version>
     </properties>
 
     <build>
