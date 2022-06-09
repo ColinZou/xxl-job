@@ -4,10 +4,10 @@ import com.xxl.job.core.biz.ReactiveJobGroupBiz
 import com.xxl.job.core.biz.model.JobGroupDto
 import com.xxl.job.core.biz.model.JobGroupListDto
 import reactor.core.publisher.Mono
+import top.nb6.scheduler.xxl.http.XxlAdminSiteProperties
 
 
-
-class ReactiveJobGroupBizImpl : ReactiveJobGroupBiz {
+class ReactiveJobGroupBizImpl(private val config: XxlAdminSiteProperties) : ReactiveJobGroupBiz {
     override fun query(appName: String?, title: String?, offset: Int?, count: Int?): Mono<JobGroupListDto> {
         TODO("Not yet implemented")
     }

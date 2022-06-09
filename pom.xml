@@ -48,6 +48,7 @@
         <postgresql-driver.version>42.3.6</postgresql-driver.version>
 
         <projectreactor.version>3.4.18</projectreactor.version>
+        <projectreactor.netty.version>1.0.19</projectreactor.netty.version>
     </properties>
 
     <build>
