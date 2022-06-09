@@ -12,28 +12,8 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
-
-open class XxlAdminSiteProperties(val apiPrefix: String, val loginName: String, val loginPassword: String)
-class Constants {
-    companion object {
-        const val HEADER_CONTENT_TYPE = "Content-Type"
-        const val URI_LOGIN = "/toLogin"
-        const val URI_LOGIN_HANDLER = "/login"
-        const val HEADER_LOCATION = "Location"
-        const val CONTENT_TYPE_JSON = "application/json"
-        const val CONTENT_TYPE_URL_FORM_ENCODED = "application/x-www-form-urlencoded"
-        val UTF_8: Charset = StandardCharsets.UTF_8
-        const val JSON_START_TAG = "{"
-        const val STATUS_CODE_OK = 200L
-        const val MAX_RETRY = 5
-    }
-}
-
-open class CommonAdminApiResponse(val code: Long, val msg: String? = null)
 
 class XxlAdminHttpClient(private val adminSiteProperties: XxlAdminSiteProperties) {
     private val httpClient: HttpClient

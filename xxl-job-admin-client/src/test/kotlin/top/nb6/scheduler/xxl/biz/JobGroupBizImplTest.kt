@@ -4,26 +4,6 @@ import org.junit.jupiter.api.*
 import top.nb6.scheduler.xxl.http.XxlAdminHttpClient
 import top.nb6.scheduler.xxl.http.XxlAdminSiteProperties
 
-/**
- * Copyright (c) 2018-2022 ThunderSoft
- * All Rights Reserved by Thunder Software Technology Co., Ltd and its affiliates.
- * You may not use, copy, distribute, modify, transmit in any form this file
- * except in compliance with ThunderSoft in writing by applicable law.
- *
- */
-/**
- * @file
- * @brief
- * @details
- * @version 1.0
- * @author Kaiping Zou
- * @date 2022-06-08
- *
- * Edit History
- * ----------------------------------------------------------------------------
- * DATE                     NAME               DESCRIPTION
- * 2022-06-08               Kaiping Zou        Created
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class JobGroupBizImplTest {
     companion object {

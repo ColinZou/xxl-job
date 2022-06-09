@@ -10,17 +10,16 @@ import com.xxl.job.core.biz.model.JobInfoDto
 import com.xxl.job.core.biz.model.JobInfoListDto
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import top.nb6.scheduler.xxl.http.CommonAdminApiResponse
+import top.nb6.scheduler.xxl.http.ClientConstants
 import top.nb6.scheduler.xxl.http.Constants
+import top.nb6.scheduler.xxl.http.JobInfoCreationResponse
 import top.nb6.scheduler.xxl.http.XxlAdminHttpClient
 import top.nb6.scheduler.xxl.utils.FormUtils
 import java.net.URLEncoder
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.*
-import java.util.concurrent.Flow
 
 fun validateJsonResponse(client: XxlAdminHttpClient, jsonContent: String) {
     val responseCheck = client.isErrorJsonResponse(jsonContent)
@@ -29,26 +28,20 @@ fun validateJsonResponse(client: XxlAdminHttpClient, jsonContent: String) {
     }
 }
 
-class JobInfoCreationResponse(code: Long, msg: String?, val content: String?) : CommonAdminApiResponse(code, msg)
 class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
     companion object {
-        const val URI_JOB_GROUP_LIST = "/jobgroup/pageList"
-        const val URI_JOB_GROUP_CREATE = "/jobgroup/save"
-        const val URI_JOB_GROUP_UPDATE = "/jobgroup/update"
-        const val URI_JOB_GROUP_REMOVE = "/jobgroup/remove"
         val log: Logger = LoggerFactory.getLogger(JobGroupBizImpl::class.java)
-        val utf8: Charset = StandardCharsets.UTF_8
     }
 
     override fun query(appName: String?, title: String?, offset: Int?, count: Int?): JobGroupListDto {
-        val queryForm = "appname=${URLEncoder.encode(appName ?: "", utf8)}&title=${
+        val queryForm = "appname=${URLEncoder.encode(appName ?: "", ClientConstants.utf8)}&title=${
             URLEncoder.encode(
                 title ?: "",
-                utf8
+                ClientConstants.utf8
             )
         }&start=${offset ?: 0}&length=${count ?: 1000}"
         val response = client.request(
-            URI_JOB_GROUP_LIST, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8),
+            ClientConstants.URI_JOB_GROUP_LIST, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8),
             HttpRequest.BodyPublishers.ofString(queryForm),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
@@ -61,7 +54,14 @@ class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
     }
 
     override fun create(appName: String?, title: String?, registerType: Int?, addressList: String?): JobGroupDto {
-        return internalCreateOrUpdate(URI_JOB_GROUP_CREATE, 0, appName, title, registerType, addressList)
+        return internalCreateOrUpdate(
+            ClientConstants.URI_JOB_GROUP_CREATE,
+            0,
+            appName,
+            title,
+            registerType,
+            addressList
+        )
     }
 
     override fun update(
@@ -71,13 +71,20 @@ class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
         registerType: Int?,
         addressList: String?
     ): JobGroupDto {
-        return internalCreateOrUpdate(URI_JOB_GROUP_UPDATE, id, appName, title, registerType, addressList)
+        return internalCreateOrUpdate(
+            ClientConstants.URI_JOB_GROUP_UPDATE,
+            id,
+            appName,
+            title,
+            registerType,
+            addressList
+        )
     }
 
     override fun delete(id: Long?): JobGroupListDto {
         val formData = "id=$id"
         val response = client.request(
-            URI_JOB_GROUP_REMOVE, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8),
+            ClientConstants.URI_JOB_GROUP_REMOVE, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8),
             HttpRequest.BodyPublishers.ofString(formData),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
@@ -102,10 +109,10 @@ class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
         registerType: Int?,
         addressList: String?
     ): JobGroupDto {
-        val generalParams = "appname=${URLEncoder.encode(appName, utf8) ?: ""}&title=${
+        val generalParams = "appname=${URLEncoder.encode(appName, ClientConstants.utf8) ?: ""}&title=${
             URLEncoder.encode(
                 title,
-                utf8
+                ClientConstants.utf8
             )
         }&addressType=${registerType ?: 0}&addressList=${addressList ?: ""}"
         val body = if (id > 0) {
@@ -118,8 +125,8 @@ class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
         }
         val response = client.request(
             uri,
-            HttpResponse.BodyHandlers.ofString(utf8),
-            HttpRequest.BodyPublishers.ofString(body, utf8),
+            HttpResponse.BodyHandlers.ofString(ClientConstants.utf8),
+            HttpRequest.BodyPublishers.ofString(body, ClientConstants.utf8),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
         )
@@ -135,39 +142,7 @@ class JobGroupBizImpl(private val client: XxlAdminHttpClient) : JobGroupBiz {
 
 class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
     companion object {
-        const val URI_JOB_INFO_LIST = "/jobinfo/pageList"
-        const val URI_JOB_INFO_ADD = "/jobinfo/add"
-        const val URI_JOB_INFO_UPDATE = "/jobinfo/update"
-        const val URI_JOB_INFO_REMOVE = "/jobinfo/remove"
-        const val URI_JOB_SCHEDULE_START = "/jobinfo/start"
-        const val URI_JOB_SCHEDULE_STOP = "/jobinfo/stop"
-        val utf8: Charset = StandardCharsets.UTF_8
         private val log: Logger = LoggerFactory.getLogger(JobGroupBizImpl::class.java)
-        private fun jobInfoDtoAsMap(dto: JobInfoDto): Map<String, String> {
-            return mapOf(
-                "jobGroup" to dto.jobGroup.toString(),
-                "jobDesc" to dto.jobDesc,
-                "author" to dto.author,
-                "alarmEmail" to dto.alarmEmail,
-                "scheduleType" to dto.scheduleType.name,
-                "scheduleConf" to dto.scheduleConf,
-                "cronGen_display" to dto.scheduleConf,
-                "schedule_conf_CRON" to dto.scheduleConf,
-                "schedule_conf_FIX_RATE" to "",
-                "schedule_conf_FIX_DELAY" to "",
-                "glueType" to dto.glueType.name,
-                "executorHandler" to dto.executorHandler,
-                "executorParam" to dto.executorParam,
-                "executorRouteStrategy" to dto.executorRouteStrategy.name,
-                "childJobId" to dto.childJobId,
-                "misfireStrategy" to dto.misfireStrategy.name,
-                "executorBlockStrategy" to dto.executorBlockStrategy.name,
-                "executorTimeout" to dto.executorTimeout.toString(),
-                "executorFailRetryCount" to dto.executorFailRetryCount.toString(),
-                "glueRemark" to dto.glueRemark,
-                "glueSource" to dto.glueSource
-            )
-        }
     }
 
     override fun query(
@@ -194,8 +169,8 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
             log.debug("Trying to query jobinfo, form body=$formBody")
         }
         val response = client.request(
-            URI_JOB_INFO_LIST,
-            HttpResponse.BodyHandlers.ofString(utf8),
+            ClientConstants.URI_JOB_INFO_LIST,
+            HttpResponse.BodyHandlers.ofString(ClientConstants.utf8),
             HttpRequest.BodyPublishers.ofString(formBody),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
@@ -223,7 +198,7 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
     }
 
     override fun create(dto: JobInfoDto?): JobInfoDto {
-        val formBody = dto?.let { FormUtils.build(jobInfoDtoAsMap(it)) } ?: ""
+        val formBody = dto?.let { FormUtils.build(FormUtils.jobInfoDtoAsMap(it)) } ?: ""
         if (formBody.isEmpty()) {
             throw ApiInvokeException("Empty request form data")
         }
@@ -231,8 +206,8 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
             log.debug("Trying to create a schedule $formBody")
         }
         val response = client.request(
-            URI_JOB_INFO_ADD,
-            HttpResponse.BodyHandlers.ofString(utf8),
+            ClientConstants.URI_JOB_INFO_ADD,
+            HttpResponse.BodyHandlers.ofString(ClientConstants.utf8),
             HttpRequest.BodyPublishers.ofString(formBody),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
@@ -250,7 +225,7 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
     }
 
     override fun update(dto: JobInfoDto?): JobInfoDto {
-        val formPart = dto?.let { FormUtils.build(jobInfoDtoAsMap(it)) } ?: ""
+        val formPart = dto?.let { FormUtils.build(FormUtils.jobInfoDtoAsMap(it)) } ?: ""
         if (formPart.isEmpty()) {
             throw ApiInvokeException("Empty request form data")
         }
@@ -259,8 +234,8 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
             log.debug("Trying to create a schedule $formBody")
         }
         val response = client.request(
-            URI_JOB_INFO_UPDATE,
-            HttpResponse.BodyHandlers.ofString(utf8),
+            ClientConstants.URI_JOB_INFO_UPDATE,
+            HttpResponse.BodyHandlers.ofString(ClientConstants.utf8),
             HttpRequest.BodyPublishers.ofString(formBody),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
@@ -270,22 +245,22 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
     }
 
     override fun remove(id: Int?): Boolean {
-        return internalJobAction(id, URI_JOB_INFO_REMOVE)
+        return internalJobAction(id, ClientConstants.URI_JOB_INFO_REMOVE)
     }
 
     override fun startJob(id: Int?): Boolean {
-        return internalJobAction(id, URI_JOB_SCHEDULE_START)
+        return internalJobAction(id, ClientConstants.URI_JOB_SCHEDULE_START)
     }
 
     override fun stopJob(id: Int?): Boolean {
-        return internalJobAction(id, URI_JOB_SCHEDULE_STOP)
+        return internalJobAction(id, ClientConstants.URI_JOB_SCHEDULE_STOP)
     }
 
     private fun internalJobAction(id: Int?, uri: String): Boolean {
         val formBody = FormUtils.build(mapOf("id" to id.toString()))
         val response = client.request(
             uri,
-            HttpResponse.BodyHandlers.ofString(utf8),
+            HttpResponse.BodyHandlers.ofString(ClientConstants.utf8),
             HttpRequest.BodyPublishers.ofString(formBody),
             "POST",
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
