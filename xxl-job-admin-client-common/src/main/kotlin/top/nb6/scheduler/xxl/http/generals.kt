@@ -20,7 +20,7 @@ class Constants {
     }
 }
 
-open class CommonAdminApiResponse(val code: Long, val msg: String? = null)
+open class CommonAdminApiResponse(val code: Long?, val msg: String? = null)
 
 class ClientConstants {
     companion object {

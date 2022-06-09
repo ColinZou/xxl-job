@@ -49,6 +49,8 @@
 
         <projectreactor.version>3.4.18</projectreactor.version>
         <projectreactor.netty.version>1.0.19</projectreactor.netty.version>
+        <jetty-reactive-httpclient.version>3.0.5</jetty-reactive-httpclient.version>
+        <jackson.version>2.13.3</jackson.version>
     </properties>
 
     <build>
