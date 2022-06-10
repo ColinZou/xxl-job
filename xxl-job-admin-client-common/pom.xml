@@ -34,6 +34,11 @@
             <artifactId>xxl-job-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>${projectreactor.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

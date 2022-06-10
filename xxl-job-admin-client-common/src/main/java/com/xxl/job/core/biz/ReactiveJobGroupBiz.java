@@ -7,8 +7,7 @@ import com.xxl.job.core.biz.model.JobGroupListDto;
 import reactor.core.publisher.Mono;
 
 public interface ReactiveJobGroupBiz {
-    Mono<JobGroupListDto> query(String appName, String title, Integer offset, Integer count) throws
-        LoginFailedException;
+    Mono<JobGroupListDto> query(String appName, String title, Integer offset, Integer count);
 
     /**
      * 创建执行器
@@ -21,11 +20,11 @@ public interface ReactiveJobGroupBiz {
      * @throws LoginFailedException
      * @throws ApiInvokeException
      */
-    Mono<JobGroupDto> create(String appName, String title, Integer registerType, String addressList)
-        throws LoginFailedException, ApiInvokeException;
+    Mono<JobGroupDto> create(String appName, String title, Integer registerType,
+                             String addressList);
 
     Mono<JobGroupDto> update(int id, String appName, String title, Integer registerType,
-                             String addressList) throws LoginFailedException, ApiInvokeException;
+                             String addressList);
 
-    Mono<JobGroupListDto> delete(Long id) throws LoginFailedException, ApiInvokeException;
+    Mono<JobGroupListDto> delete(Long id);
 }

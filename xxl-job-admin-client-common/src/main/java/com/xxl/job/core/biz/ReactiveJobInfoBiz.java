@@ -22,8 +22,7 @@ public interface ReactiveJobInfoBiz {
      * @throws ApiInvokeException
      */
     Mono<JobInfoListDto> query(int jobGroupId, int triggerStatus, String jobDesc,
-                               String execHandler, String author, Integer offset, Integer count)
-        throws LoginFailedException, ApiInvokeException;
+                               String execHandler, String author, Integer offset, Integer count);
 
     /**
      * 创建任务调度
@@ -33,13 +32,13 @@ public interface ReactiveJobInfoBiz {
      * @throws LoginFailedException
      * @throws ApiInvokeException
      */
-    Mono<JobInfoDto> create(JobInfoDto dto) throws LoginFailedException, ApiInvokeException;
+    Mono<JobInfoDto> create(JobInfoDto dto);
 
-    Mono<JobInfoDto> update(JobInfoDto dto) throws LoginFailedException, ApiInvokeException;
+    Mono<JobInfoDto> update(JobInfoDto dto);
 
-    Mono<Boolean> remove(Integer id) throws LoginFailedException, ApiInvokeException;
+    Mono<Boolean> remove(Integer id);
 
-    Mono<Boolean> startJob(Integer id) throws LoginFailedException, ApiInvokeException;
+    Mono<Boolean> startJob(Integer id);
 
-    Mono<Boolean> stopJob(Integer id) throws LoginFailedException, ApiInvokeException;
+    Mono<Boolean> stopJob(Integer id);
 }
