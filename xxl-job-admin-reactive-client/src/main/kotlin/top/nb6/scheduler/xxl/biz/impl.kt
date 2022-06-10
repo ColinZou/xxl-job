@@ -1,6 +1,7 @@
 package top.nb6.scheduler.xxl.biz
 
 import com.xxl.job.core.biz.ReactiveJobGroupBiz
+import com.xxl.job.core.biz.exceptions.ApiInvokeException
 import com.xxl.job.core.biz.model.JobGroupDto
 import com.xxl.job.core.biz.model.JobGroupListDto
 import org.slf4j.Logger
@@ -16,6 +17,7 @@ import top.nb6.scheduler.xxl.http.*
 import java.net.URLEncoder
 import java.time.Duration
 import java.util.*
+import javax.security.auth.login.LoginException
 
 class GeneralApiResponse(code: Long?, msg: String?, val content: Any? = null) : CommonAdminApiResponse(code, msg)
 
@@ -32,7 +34,7 @@ abstract class AbstractAdminBizClient(private val config: XxlAdminSiteProperties
             val loginName = props.loginName
             val password = props.loginPassword
             if (loginName.isEmpty() || password.isEmpty()) {
-                error("Empty loginName or empty loginPassword")
+                error(LoginException("Empty loginName or empty loginPassword"))
             }
             val response = request(
                 Constants.URI_LOGIN_HANDLER,
@@ -98,9 +100,9 @@ abstract class AbstractAdminBizClient(private val config: XxlAdminSiteProperties
                 val redirectLocation = it.headers().asHttpHeaders().location?.toString()
                 log.warn("Redirecting to $redirectLocation")
                 if ((redirectLocation ?: "").endsWith(Constants.URI_LOGIN, ignoreCase = true)) {
-                    error("Login needed")
+                    error(LoginException("Login needed"))
                 } else {
-                    error("Unexpected redirect")
+                    error(ApiInvokeException("Unexpected redirect"))
                 }
             })
             .bodyToMono(responseBodyType)
@@ -121,11 +123,11 @@ abstract class AbstractAdminBizClient(private val config: XxlAdminSiteProperties
                                 triedTimes + 1
                             )
                         } else {
-                            error("Oops, login failed")
+                            error(LoginException("Oops, login failed"))
                         }
                     }
                 } else {
-                    error("No need to login or tried times $triedTimes >= max=$MAX_RETRIES")
+                    error(LoginException("No need to login or tried times $triedTimes >= max=$MAX_RETRIES"))
                 }
             }
             .timeout(timeout)
@@ -147,7 +149,7 @@ class ReactiveJobGroupBizImpl(config: XxlAdminSiteProperties) : ReactiveJobGroup
     }
 
     override fun create(appName: String?, title: String?, registerType: Int?, addressList: String?): Mono<JobGroupDto> {
-        TODO("Not yet implemented")
+        return internalCreate(ClientConstants.URI_JOB_GROUP_CREATE, 0, appName, title, registerType, addressList)
     }
 
     override fun update(
@@ -157,10 +159,52 @@ class ReactiveJobGroupBizImpl(config: XxlAdminSiteProperties) : ReactiveJobGroup
         registerType: Int?,
         addressList: String?
     ): Mono<JobGroupDto> {
-        TODO("Not yet implemented")
+        return internalCreate(ClientConstants.URI_JOB_GROUP_UPDATE, id, appName, title, registerType, addressList)
     }
 
     override fun delete(id: Long?): Mono<JobGroupListDto> {
-        TODO("Not yet implemented")
+        val formContent = BodyInserters.fromFormData("id", "${id ?: 0}")
+        return request(
+            ClientConstants.URI_JOB_GROUP_REMOVE, formContent, GeneralApiResponse::class.java, "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        ).flatMap {
+            if (!it.ok()) {
+                error(ApiInvokeException("Failed to delete job group id=$id"))
+            }
+            this.query(null, null, null, null)
+        }
+    }
+
+    private fun internalCreate(
+        uri: String,
+        id: Int,
+        appName: String?,
+        title: String?,
+        registerType: Int?,
+        addressList: String?
+    ): Mono<JobGroupDto> {
+        val formContent = BodyInserters.fromFormData(
+            "appname",
+            URLEncoder.encode(appName ?: "", Constants.UTF_8)
+        ).with("title", URLEncoder.encode(title ?: "", Constants.UTF_8))
+            .with("addressType", "${registerType ?: 0}")
+            .with("addressList", addressList ?: "")
+        if (id > 0) {
+            formContent.with("id", "$id")
+        }
+        return request(
+            uri,
+            formContent,
+            GeneralApiResponse::class.java,
+            "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        ).flatMap {
+            if (!it.ok()) {
+                error(ApiInvokeException("Failed to create/save job group name=$appName id=$id"))
+            }
+            query(appName, title, null, null).mapNotNull { groupList ->
+                groupList.data.firstOrNull()
+            }
+        }
     }
 }

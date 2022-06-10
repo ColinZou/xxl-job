@@ -20,7 +20,11 @@ class Constants {
     }
 }
 
-open class CommonAdminApiResponse(val code: Long?, val msg: String? = null)
+open class CommonAdminApiResponse(val code: Long?, val msg: String? = null) {
+    fun ok(): Boolean {
+        return code == Constants.STATUS_CODE_OK
+    }
+}
 
 class ClientConstants {
     companion object {
