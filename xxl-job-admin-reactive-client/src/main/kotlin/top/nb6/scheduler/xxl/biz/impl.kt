@@ -1,19 +1,25 @@
 package top.nb6.scheduler.xxl.biz
 
 import com.xxl.job.core.biz.ReactiveJobGroupBiz
+import com.xxl.job.core.biz.ReactiveJobInfoBiz
 import com.xxl.job.core.biz.exceptions.ApiInvokeException
 import com.xxl.job.core.biz.model.JobGroupDto
 import com.xxl.job.core.biz.model.JobGroupListDto
+import com.xxl.job.core.biz.model.JobInfoDto
+import com.xxl.job.core.biz.model.JobInfoListDto
+import com.xxl.job.core.biz.model.types.FlagConstants
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.http.client.reactive.ClientHttpRequest
+import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.BodyInserter
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import top.nb6.scheduler.xxl.http.*
+import top.nb6.scheduler.xxl.utils.FormUtils
 import java.net.URLEncoder
 import java.time.Duration
 import java.util.*
@@ -200,11 +206,121 @@ class ReactiveJobGroupBizImpl(config: XxlAdminSiteProperties) : ReactiveJobGroup
             contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
         ).flatMap {
             if (!it.ok()) {
-                error(ApiInvokeException("Failed to create/save job group name=$appName id=$id"))
+                error(ApiInvokeException("Failed to create/save job group name=$appName registerType=$registerType id=$id error=${it.msg}"))
             }
             query(appName, title, null, null).mapNotNull { groupList ->
                 groupList.data.firstOrNull()
             }
+        }
+    }
+}
+
+class ReactiveJobInfoClientImpl(config: XxlAdminSiteProperties) : ReactiveJobInfoBiz, AbstractAdminBizClient(config) {
+    override fun query(
+        jobGroupId: Int,
+        triggerStatus: Int,
+        jobDesc: String?,
+        execHandler: String?,
+        author: String?,
+        offset: Int?,
+        count: Int?
+    ): Mono<JobInfoListDto> {
+        val formContent = BodyInserters
+            .fromFormData("jobGroup", "$jobGroupId")
+            .with("triggerStatus", "$triggerStatus")
+            .with("jobDesc", jobDesc ?: "")
+            .with("executorHandler", execHandler ?: "")
+            .with("author", author ?: "")
+            .with("start", "${offset ?: 0}")
+            .with("length", "${count ?: 1000}")
+        return request(
+            ClientConstants.URI_JOB_INFO_LIST,
+            formContent,
+            JobInfoListDto::class.java,
+            "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        )
+    }
+
+    private fun getJobInfoById(jobGroupId: Int, jobId: Int): Mono<JobInfoDto> {
+        return query(jobGroupId, FlagConstants.JOB_QRY_TRIGGER_STATUS_ALL, null, null, null, null, null)
+            .mapNotNull {
+                it.data.firstOrNull { dto -> dto.id == jobId }
+            }
+    }
+
+    override fun create(dto: JobInfoDto?): Mono<JobInfoDto> {
+        val body = dto?.let { item ->
+            FormUtils.jobInfoDtoAsMap(item).entries.map {
+                Pair(it.key, listOf(it.value))
+            }
+        } ?: arrayListOf()
+        if (body.isEmpty()) {
+            throw ApiInvokeException("Empty request data for creating job")
+        }
+        val form = BodyInserters.fromFormData(LinkedMultiValueMap(mutableMapOf(*body.toTypedArray())))
+        return request(
+            ClientConstants.URI_JOB_INFO_ADD,
+            form,
+            GeneralApiResponse::class.java,
+            "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        ).flatMap {
+            if (!it.ok()) {
+                error(ApiInvokeException("Failed to create schedule"))
+            }
+            getJobInfoById(dto?.jobGroup ?: 0, ((it.content ?: "0") as String).toInt())
+        }
+    }
+
+    override fun update(dto: JobInfoDto?): Mono<JobInfoDto> {
+        val body = dto?.let { item ->
+            FormUtils.jobInfoDtoAsMap(item).entries.map {
+                Pair(it.key, listOf(it.value))
+            }
+        } ?: arrayListOf()
+        if (body.isEmpty()) {
+            throw ApiInvokeException("Empty request data for updating job")
+        }
+        val form =
+            BodyInserters.fromFormData(LinkedMultiValueMap(mutableMapOf(*body.toTypedArray())))
+                .with("id", "${dto?.id ?: 0}")
+        return request(
+            ClientConstants.URI_JOB_INFO_UPDATE,
+            form,
+            GeneralApiResponse::class.java,
+            "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        ).flatMap {
+            if (!it.ok()) {
+                error(ApiInvokeException("Failed to create schedule"))
+            }
+            getJobInfoById(dto?.jobGroup ?: 0, dto?.id ?: 0)
+        }
+    }
+
+    override fun remove(id: Int?): Mono<Boolean> {
+        return internalActionJob(id ?: 0, ClientConstants.URI_JOB_INFO_REMOVE)
+    }
+
+    override fun startJob(id: Int?): Mono<Boolean> {
+        return internalActionJob(id ?: 0, ClientConstants.URI_JOB_SCHEDULE_START)
+    }
+
+    override fun stopJob(id: Int?): Mono<Boolean> {
+        return internalActionJob(id ?: 0, ClientConstants.URI_JOB_SCHEDULE_STOP)
+    }
+
+    private fun internalActionJob(jobId: Int, uri: String): Mono<Boolean> {
+        val formContent = BodyInserters.fromFormData("id", "$jobId")
+        return request(
+            uri,
+            formContent,
+            GeneralApiResponse::class.java,
+            "POST",
+            contentType = Constants.CONTENT_TYPE_URL_FORM_ENCODED
+        ).map {
+            it.ok()
         }
     }
 }

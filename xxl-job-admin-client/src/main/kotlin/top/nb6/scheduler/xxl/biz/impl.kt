@@ -8,6 +8,7 @@ import com.xxl.job.core.biz.model.JobGroupDto
 import com.xxl.job.core.biz.model.JobGroupListDto
 import com.xxl.job.core.biz.model.JobInfoDto
 import com.xxl.job.core.biz.model.JobInfoListDto
+import com.xxl.job.core.biz.model.types.FlagConstants
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import top.nb6.scheduler.xxl.http.ClientConstants
@@ -181,7 +182,7 @@ class JobInfoBizImpl(private val client: XxlAdminHttpClient) : JobInfoBiz {
     private fun retrieveJobInfoById(jobGroupId: Int, jobId: Int): JobInfoDto {
         val jobList = query(
             jobGroupId,
-            com.xxl.job.core.biz.model.types.Constants.JOB_QRY_TRIGGER_STATUS_ALL,
+            FlagConstants.JOB_QRY_TRIGGER_STATUS_ALL,
             null,
             null,
             null,

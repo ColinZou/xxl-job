@@ -44,7 +44,7 @@ internal class JobInfoBizImplTest {
                 val groupId = item.id
                 val jobInfoList =
                     jobInfoBiz.query(
-                        groupId, Constants.JOB_QRY_TRIGGER_STATUS_ALL, null,
+                        groupId, FlagConstants.JOB_QRY_TRIGGER_STATUS_ALL, null,
                         null, null, null, null
                     )
                 jobInfoList.data.forEach {
@@ -60,7 +60,7 @@ internal class JobInfoBizImplTest {
     fun testQuery() {
         val result = jobInfoBiz.query(
             groupId,
-            com.xxl.job.core.biz.model.types.Constants.JOB_QRY_TRIGGER_STATUS_ALL,
+            FlagConstants.JOB_QRY_TRIGGER_STATUS_ALL,
             null,
             null,
             null,
@@ -125,7 +125,7 @@ internal class JobInfoBizImplTest {
         Assertions.assertTrue(deleteResult)
         //verify delete
         val list = jobInfoBiz.query(
-            groupId, Constants.JOB_QRY_TRIGGER_STATUS_ALL, null,
+            groupId, -1, null,
             null, null, null, null
         )
         val searchResult = list.data.firstOrNull { it.id == result.id }
@@ -141,10 +141,10 @@ internal class JobInfoBizImplTest {
         Assertions.assertNotNull(result.id)
         val startResult = jobInfoBiz.startJob(result.id)
         Assertions.assertTrue(startResult)
-        checkJobStatus(result.id, Constants.JOB_QRY_TRIGGER_STATUS_RUNNING)
+        checkJobStatus(result.id, FlagConstants.JOB_QRY_TRIGGER_STATUS_RUNNING)
         val stopResult = jobInfoBiz.stopJob(result.id)
         Assertions.assertTrue(stopResult)
-        checkJobStatus(result.id, Constants.JOB_QRY_TRIGGER_STATUS_STOPPED)
+        checkJobStatus(result.id, FlagConstants.JOB_QRY_TRIGGER_STATUS_STOPPED)
 
         val removeResult = jobInfoBiz.remove(result.id)
         Assertions.assertTrue(removeResult)
@@ -152,7 +152,7 @@ internal class JobInfoBizImplTest {
 
     private fun checkJobStatus(jobId: Int, expectedStatus: Int) {
         val list = jobInfoBiz.query(
-            groupId, Constants.JOB_QRY_TRIGGER_STATUS_ALL, null,
+            groupId, FlagConstants.JOB_QRY_TRIGGER_STATUS_ALL, null,
             null, null, null, null
         )
         val searchResult = list.data.firstOrNull { it.id == jobId && it.triggerStatus == expectedStatus }
