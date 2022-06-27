@@ -156,7 +156,27 @@
                         <url>https://atrd01.thunderst.com/repos/repository/maven-snapshots/</url>
                     </snapshotRepository>
                 </distributionManagement>
+                <build>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-source-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <id>attach-sources</id>
+                                    <phase>deploy</phase>
+                                    <goals><goal>jar-no-fork</goal></goals>
+                                    <configuration>
+                                        <attach>true</attach>
+                                        <includes>
+                                            <include>**/*.java</include>
+                                            <include>**/*.kt</include>
+                                        </includes>
+                                    </configuration>
+                                </execution>
+                            </executions>
+                        </plugin>
+                    </plugins>
+                </build>
             </profile>
     </profiles>
-
 </project>
