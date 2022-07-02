@@ -20,8 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.core.publisher.Sinks
-import reactor.core.publisher.Sinks.Many
+import reactor.util.retry.Retry
 import top.nb6.scheduler.xxl.http.*
 import top.nb6.scheduler.xxl.utils.FormUtils
 import java.net.URLEncoder
@@ -35,44 +34,20 @@ class GeneralApiResponse(code: Long?, msg: String?, val content: Any? = null) : 
 class Locker {
     companion object {
         val log: Logger = LoggerFactory.getLogger(Locker::class.java)
-        const val SLEEP_TIMEOUT = 50.0
+        const val RETRY_INTERVAL_MS = 50
     }
 
     private val locked = AtomicBoolean(false)
-    private val notifier: Flux<Boolean>
-    private val notifierSink: Many<Boolean> = Sinks.many().multicast().onBackpressureBuffer(1, false)
 
-    init {
-        notifier = notifierSink.asFlux()
-        notifierSink.emitNext(false, Sinks.EmitFailureHandler.FAIL_FAST)
-    }
 
     fun <T> lock(duration: Duration, job: Flux<T>): Flux<T> {
-        return notifier.filter {
-            obtainLock(duration)
-        }.next()
-            .transform { lockedValue -> lockedValue.timeout(duration) }
-            .doOnSubscribe {
-                log.debug("Obtaining lock")
-            }
-            .doOnError { e -> log.error("failed to obtain lock $e", e) }
-            .flatMapMany {
-                log.debug("Invoking the real job")
-                job
-            }
-            .doFinally {
-                if (releaseLock()) {
-                    val emitResult = notifierSink.tryEmitNext(false)
-                    log.info("Lock releasing, emitNext result isFailure=${emitResult.isFailure} isSuccess=${emitResult.isSuccess}}")
+        return obtainLock(duration).flux().defaultIfEmpty(false)
+            .filter {
+                if (!it) {
+                    error("Could not get lock")
                 }
+                it
             }
-    }
-
-    fun <T> lock(duration: Duration, job: Mono<T>): Mono<T> {
-        return notifier.filter {
-            obtainLock(duration)
-        }.next()
-            .transform { lockedValue -> lockedValue.timeout(duration) }
             .doOnSubscribe {
                 log.debug("Obtaining lock")
             }
@@ -82,27 +57,45 @@ class Locker {
                 job
             }
             .doFinally {
-                if (releaseLock()) {
-                    val emitResult = notifierSink.tryEmitNext(false)
-                    log.info("Lock releasing, emitNext result isFailure=${emitResult.isFailure} isSuccess=${emitResult.isSuccess}")
-                }
+                releaseLock()
             }
     }
 
-    private fun obtainLock(timeOut: Duration): Boolean {
-        return if (!locked.compareAndExchange(false, true)) {
-            true
-        } else {
-            val part = ceil(timeOut.toMillis() / SLEEP_TIMEOUT)
-            val outerResult = IntRange(1, part.toInt()).map {
-                val result = !locked.compareAndExchange(false, true)
-                if (result) {
-                    Thread.sleep(SLEEP_TIMEOUT.toLong())
+    fun <T> lock(duration: Duration, job: Mono<T>): Mono<T> {
+        return obtainLock(duration).defaultIfEmpty(false)
+            .filter {
+                if (!it) {
+                    error("Could not get lock")
                 }
-                !result
-            }.firstOrNull { it }
-            outerResult ?: false
-        }
+                it
+            }
+            .doOnSubscribe {
+                log.debug("Obtaining lock")
+            }
+            .doOnError { e -> log.error("failed to obtain lock $e", e) }
+            .flatMap {
+                log.debug("Invoking the real job")
+                job
+            }
+            .doFinally {
+                releaseLock()
+            }
+    }
+
+    private fun obtainLock(timeOut: Duration): Mono<Boolean> {
+        val times = ceil(timeOut.toMillis() * 1.0 / RETRY_INTERVAL_MS).toLong()
+        return Mono.fromCallable { (!locked.compareAndExchange(false, true)) }
+            .filter {
+                if (log.isDebugEnabled) {
+                    log.debug("Getting lock? $it")
+                }
+                if (!it) {
+                    error("Failed to get lock")
+                }
+                it
+            }.retryWhen(
+                Retry.backoff(times, Duration.ofMillis(RETRY_INTERVAL_MS.toLong()))
+            ).timeout(timeOut)
     }
 
     private fun releaseLock(): Boolean {
