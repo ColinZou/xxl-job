@@ -16,7 +16,7 @@ CREATE TABLE "xxl_job_info"
     "misfire_strategy"          varchar(50)  NOT NULL DEFAULT 'DO_NOTHING',
     "executor_route_strategy"   varchar(50)           DEFAULT NULL,
     "executor_handler"          varchar(255)          DEFAULT NULL,
-    "executor_param"            varchar(512)          DEFAULT NULL,
+    "executor_param"            text          DEFAULT NULL,
     "executor_block_strategy"   varchar(50)           DEFAULT NULL,
     "executor_timeout"          INT4         NOT NULL DEFAULT 0,
     "executor_fail_retry_count" INT4         NOT NULL DEFAULT 0,
@@ -38,7 +38,7 @@ CREATE TABLE "xxl_job_log"
     "job_id"                    INT8    NOT NULL,
     "executor_address"          varchar(255)     DEFAULT NULL,
     "executor_handler"          varchar(255)     DEFAULT NULL,
-    "executor_param"            varchar(512)     DEFAULT NULL,
+    "executor_param"            text     DEFAULT NULL,
     "executor_sharding_param"   varchar(20)      DEFAULT NULL,
     "executor_fail_retry_count" INT8    NOT NULL DEFAULT 0,
     "trigger_time"              timestamptz      DEFAULT NULL,
@@ -88,8 +88,8 @@ CREATE INDEX xxl_job_registry_i_g_k_v ON xxl_job_registry ("registry_group", "re
 CREATE TABLE "xxl_job_group"
 (
     "id"           SERIAL8     NOT NULL PRIMARY KEY,
-    "app_name"     varchar(64) NOT NULL,
-    "title"        varchar(12) NOT NULL,
+    "app_name"     varchar(255) NOT NULL,
+    "title"        varchar(255) NOT NULL,
     "address_type" INT2        NOT NULL DEFAULT 0,
     "address_list" text,
     "update_time"  timestamptz          DEFAULT NULL
